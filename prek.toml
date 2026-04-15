@@ -1,0 +1,12 @@
+default_install_hook_types = ["commit-msg"]
+
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "strip-trailers"
+name = "Strip commit trailers"
+language = "script"
+entry = "scripts/strip-trailers.sh"
+stages = ["commit-msg"]
+always_run = true
