@@ -7,7 +7,12 @@ let package = Package(
     targets: [
         .target(name: "BookmarkModel"),
         .target(name: "ChromeConnector", dependencies: ["BookmarkModel"]),
+        .target(name: "SafariConnector", dependencies: ["BookmarkModel"]),
+        .target(name: "Store", dependencies: ["BookmarkModel"]),
         .testTarget(name: "ChromeConnectorTests", dependencies: ["ChromeConnector"],
                     resources: [.copy("Fixtures")]),
+        .testTarget(name: "SafariConnectorTests", dependencies: ["SafariConnector"],
+                    resources: [.copy("Fixtures")]),
+        .testTarget(name: "StoreTests", dependencies: ["Store"]),
     ]
 )

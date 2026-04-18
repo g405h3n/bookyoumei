@@ -5,7 +5,7 @@ public enum BookmarkItemType: String, Codable, Sendable {
     case bookmark
 }
 
-public struct BookmarkItem: Sendable, Equatable {
+public struct BookmarkItem: Sendable, Equatable, Codable {
     public let id: String
     public let type: BookmarkItemType
     public let parentID: String?
@@ -36,5 +36,17 @@ public struct BookmarkItem: Sendable, Equatable {
         self.dateAdded = dateAdded
         self.dateModified = dateModified
         self.identifierMap = identifierMap
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case type
+        case parentID = "parent_id"
+        case position
+        case title
+        case url
+        case dateAdded = "date_added"
+        case dateModified = "date_modified"
+        case identifierMap = "identifier_map"
     }
 }

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Children</key>
+  <array>
+    <dict>
+      <key>WebBookmarkType</key>
+      <string>WebBookmarkTypeList</string>
+      <key>Title</key>
+      <string>Favorites Bar</string>
+      <key>WebBookmarkUUID</key>
+      <string>fav-root-uuid</string>
+      <key>Children</key>
+      <array>
+        <dict>
+          <key>WebBookmarkType</key>
+          <string>WebBookmarkTypeLeaf</string>
+          <key>Title</key>
+          <string>Example</string>
+          <key>URLString</key>
+          <string>https://example.com/</string>
+          <key>WebBookmarkUUID</key>
+          <string>fav-example-uuid</string>
+        </dict>
+      </array>
+    </dict>
+    <dict>
+      <key>WebBookmarkType</key>
+      <string>WebBookmarkTypeLeaf</string>
+      <key>Title</key>
+      <string>Root Link</string>
+      <key>URLString</key>
+      <string>https://root.example.com/</string>
+      <key>WebBookmarkUUID</key>
+      <string>root-link-uuid</string>
+    </dict>
+    <dict>
+      <key>WebBookmarkType</key>
+      <string>WebBookmarkTypeList</string>
+      <key>Title</key>
+      <string>Reading List</string>
+      <key>WebBookmarkUUID</key>
+      <string>reading-list-uuid</string>
+      <key>Children</key>
+      <array>
+        <dict>
+          <key>WebBookmarkType</key>
+          <string>WebBookmarkTypeLeaf</string>
+          <key>Title</key>
+          <string>Should Ignore Reading List Item</string>
+          <key>URLString</key>
+          <string>https://ignored.example.com/</string>
+          <key>WebBookmarkUUID</key>
+          <string>ignored-reading-list-item-uuid</string>
+        </dict>
+      </array>
+    </dict>
+    <dict>
+      <key>WebBookmarkType</key>
+      <string>WebBookmarkTypeList</string>
+      <key>Title</key>
+      <string>Bookmarks Menu</string>
+      <key>WebBookmarkUUID</key>
+      <string>bookmarks-menu-uuid</string>
+      <key>Children</key>
+      <array>
+        <dict>
+          <key>WebBookmarkType</key>
+          <string>WebBookmarkTypeLeaf</string>
+          <key>Title</key>
+          <string>Should Ignore Menu Item</string>
+          <key>URLString</key>
+          <string>https://menu.example.com/</string>
+          <key>WebBookmarkUUID</key>
+          <string>ignored-bookmarks-menu-item-uuid</string>
+        </dict>
+      </array>
+    </dict>
+  </array>
+</dict>
+</plist>

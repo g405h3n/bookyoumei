@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Children</key>
+  <array>
+    <dict>
+      <key>WebBookmarkType</key>
+      <string>WebBookmarkTypeList</string>
+      <key>Title</key>
+      <string>Favorites Bar</string>
+      <key>WebBookmarkUUID</key>
+      <string>fav-root-uuid</string>
+      <key>Children</key>
+      <array>
+        <dict>
+          <key>WebBookmarkType</key>
+          <string>WebBookmarkTypeList</string>
+          <key>Title</key>
+          <string>Outer Folder</string>
+          <key>WebBookmarkUUID</key>
+          <string>outer-folder-uuid</string>
+          <key>Children</key>
+          <array>
+            <dict>
+              <key>WebBookmarkType</key>
+              <string>WebBookmarkTypeList</string>
+              <key>Title</key>
+              <string>Inner Folder</string>
+              <key>WebBookmarkUUID</key>
+              <string>inner-folder-uuid</string>
+              <key>Children</key>
+              <array>
+                <dict>
+                  <key>WebBookmarkType</key>
+                  <string>WebBookmarkTypeLeaf</string>
+                  <key>Title</key>
+                  <string>Deep Bookmark</string>
+                  <key>URLString</key>
+                  <string>https://deep.example.com/</string>
+                  <key>WebBookmarkUUID</key>
+                  <string>deep-bookmark-uuid</string>
+                </dict>
+              </array>
+            </dict>
+            <dict>
+              <key>WebBookmarkType</key>
+              <string>WebBookmarkTypeLeaf</string>
+              <key>Title</key>
+              <string>Sibling Bookmark</string>
+              <key>URLString</key>
+              <string>https://sibling.example.com/</string>
+              <key>WebBookmarkUUID</key>
+              <string>sibling-bookmark-uuid</string>
+            </dict>
+          </array>
+        </dict>
+      </array>
+    </dict>
+  </array>
+</dict>
+</plist>
