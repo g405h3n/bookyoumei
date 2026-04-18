@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Children</key>
+  <array>
+    <dict>
+      <key>WebBookmarkType</key>
+      <string>WebBookmarkTypeList</string>
+      <key>Title</key>
+      <string>Favorites Bar</string>
+      <key>WebBookmarkUUID</key>
+      <string>fav-root-uuid</string>
+      <key>Children</key>
+      <array>
+        <dict>
+          <key>WebBookmarkType</key>
+          <string>WebBookmarkTypeList</string>
+          <key>Title</key>
+          <string>Projects</string>
+          <key>WebBookmarkUUID</key>
+          <string>projects-folder-uuid</string>
+          <key>Children</key>
+          <array>
+            <dict>
+              <key>WebBookmarkType</key>
+              <string>WebBookmarkTypeList</string>
+              <key>Title</key>
+              <string>Reading List</string>
+              <key>WebBookmarkUUID</key>
+              <string>nested-reading-list-uuid</string>
+              <key>Children</key>
+              <array>
+                <dict>
+                  <key>WebBookmarkType</key>
+                  <string>WebBookmarkTypeLeaf</string>
+                  <key>Title</key>
+                  <string>Reading List Child Link</string>
+                  <key>URLString</key>
+                  <string>https://reading-list-child.example.com/</string>
+                  <key>WebBookmarkUUID</key>
+                  <string>reading-list-child-uuid</string>
+                </dict>
+              </array>
+            </dict>
+            <dict>
+              <key>WebBookmarkType</key>
+              <string>WebBookmarkTypeList</string>
+              <key>Title</key>
+              <string>Bookmarks Menu</string>
+              <key>WebBookmarkUUID</key>
+              <string>nested-bookmarks-menu-uuid</string>
+              <key>Children</key>
+              <array>
+                <dict>
+                  <key>WebBookmarkType</key>
+                  <string>WebBookmarkTypeLeaf</string>
+                  <key>Title</key>
+                  <string>Bookmarks Menu Child Link</string>
+                  <key>URLString</key>
+                  <string>https://bookmarks-menu-child.example.com/</string>
+                  <key>WebBookmarkUUID</key>
+                  <string>bookmarks-menu-child-uuid</string>
+                </dict>
+              </array>
+            </dict>
+          </array>
+        </dict>
+      </array>
+    </dict>
+  </array>
+</dict>
+</plist>

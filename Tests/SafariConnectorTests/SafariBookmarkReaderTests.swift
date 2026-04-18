@@ -40,6 +40,21 @@ struct SafariBookmarkReaderTests {
         #expect(items.allSatisfy { $0.title != "Should Ignore Menu Item" })
     }
 
+    @Test func nestedUserFoldersNamedLikeExcludedRootsArePreserved() throws {
+        let reader = SafariBookmarkReader()
+        let items = try reader.read(from: fixtureURL("safari-bookmarks-nested-exclusion-regression"))
+
+        let nestedReadingListFolder = items.first { $0.title == "Reading List" && $0.type == .folder }
+        let nestedBookmarksMenuFolder = items.first { $0.title == "Bookmarks Menu" && $0.type == .folder }
+        let readingListChild = items.first { $0.title == "Reading List Child Link" && $0.type == .bookmark }
+        let bookmarksMenuChild = items.first { $0.title == "Bookmarks Menu Child Link" && $0.type == .bookmark }
+
+        #expect(nestedReadingListFolder != nil)
+        #expect(nestedBookmarksMenuFolder != nil)
+        #expect(readingListChild != nil)
+        #expect(bookmarksMenuChild != nil)
+    }
+
     @Test func bookmarkFields() throws {
         let reader = SafariBookmarkReader()
         let items = try reader.read(from: fixtureURL("safari-bookmarks-simple"))

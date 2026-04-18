@@ -26,7 +26,16 @@ public struct BookmarkStore {
         let data = try Data(contentsOf: fileURL)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode(StoreDocument.self, from: data)
+        let document = try decoder.decode(StoreDocument.self, from: data)
+
+        guard document.metadata.schemaVersion == Self.schemaVersion else {
+            throw BookmarkStoreError.unsupportedSchemaVersion(
+                expected: Self.schemaVersion,
+                actual: document.metadata.schemaVersion
+            )
+        }
+
+        return document
     }
 
     public func write(
@@ -72,4 +81,5 @@ public struct BookmarkStore {
 
 public enum BookmarkStoreError: Error, Equatable {
     case revisionConflict(expected: Int, actual: Int)
+    case unsupportedSchemaVersion(expected: Int, actual: Int)
 }

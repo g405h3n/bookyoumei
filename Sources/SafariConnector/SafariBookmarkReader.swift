@@ -63,10 +63,6 @@ public struct SafariBookmarkReader: Sendable {
 
     private func flattenChildren(of nodes: [[String: Any]], parentID: String, into items: inout [BookmarkItem]) {
         for (index, node) in nodes.enumerated() {
-            if isExcludedTopLevelNode(node) {
-                continue
-            }
-
             let isFolderNode = isFolder(node)
             let itemID = nodeUUID(node) ?? fallbackID(parentID: parentID, index: index, title: nodeTitle(node))
             let itemType: BookmarkItemType = isFolderNode ? .folder : .bookmark

@@ -112,4 +112,33 @@ struct BookmarkStoreTests {
             _ = try store.write(items: [], writerClientID: "safari-mac-001", clients: [], expectedStoreRevision: 5)
         }
     }
+
+    @Test func loadRejectsUnsupportedSchemaVersion() throws {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let storeURL = tempDir.appendingPathComponent("store.json")
+        let store = BookmarkStore(fileURL: storeURL)
+        let json = """
+        {
+          "metadata": {
+            "schema_version": 999,
+            "store_revision": 1,
+            "written_by_client_id": "chrome-mac-001",
+            "updated_at": "2026-04-18T00:00:00Z",
+            "clients": []
+          },
+          "items": []
+        }
+        """
+        try json.data(using: .utf8)?.write(to: storeURL, options: .atomic)
+
+        #expect(throws: BookmarkStoreError.unsupportedSchemaVersion(
+            expected: BookmarkStore.schemaVersion,
+            actual: 999
+        )) {
+            _ = try store.load()
+        }
+    }
 }
