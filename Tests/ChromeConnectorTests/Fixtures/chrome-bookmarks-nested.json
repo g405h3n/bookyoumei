@@ -1,0 +1,70 @@
+{
+  "checksum": "def456",
+  "roots": {
+    "bookmark_bar": {
+      "children": [
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "date_added": "13418118784355197",
+                  "guid": "leaf-guid-0001",
+                  "id": "10",
+                  "name": "Deep Bookmark",
+                  "type": "url",
+                  "url": "https://deep.example.com/"
+                }
+              ],
+              "date_added": "13418000000000000",
+              "date_modified": "13418118784355197",
+              "guid": "inner-folder-guid",
+              "id": "9",
+              "name": "Inner Folder",
+              "type": "folder"
+            },
+            {
+              "date_added": "13418050000000000",
+              "guid": "sibling-guid-0001",
+              "id": "11",
+              "name": "Sibling Bookmark",
+              "type": "url",
+              "url": "https://sibling.example.com/"
+            }
+          ],
+          "date_added": "13417900000000000",
+          "date_modified": "13418050000000000",
+          "guid": "outer-folder-guid",
+          "id": "8",
+          "name": "Outer Folder",
+          "type": "folder"
+        }
+      ],
+      "date_added": "13417789770109202",
+      "date_modified": "13417900000000000",
+      "guid": "0bc5d13f-2cba-5d74-951f-3f233fe6c908",
+      "id": "1",
+      "name": "Bookmarks Bar",
+      "type": "folder"
+    },
+    "other": {
+      "children": [],
+      "date_added": "13417789770109202",
+      "date_modified": "0",
+      "guid": "82b081ec-3dd3-529c-8475-ab6c344590dd",
+      "id": "2",
+      "name": "Other Bookmarks",
+      "type": "folder"
+    },
+    "synced": {
+      "children": [],
+      "date_added": "13417789770109202",
+      "date_modified": "0",
+      "guid": "4cf2e351-0e85-532b-bb37-df045d8f8d0f",
+      "id": "3",
+      "name": "Mobile Bookmarks",
+      "type": "folder"
+    }
+  },
+  "version": 1
+}

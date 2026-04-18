@@ -1,0 +1,60 @@
+{
+  "checksum": "abc123",
+  "roots": {
+    "bookmark_bar": {
+      "children": [
+        {
+          "date_added": "13418118784355197",
+          "guid": "dff0fb99-f7f5-40a5-89cd-54326fa4d87c",
+          "id": "5",
+          "name": "Example",
+          "type": "url",
+          "url": "https://example.com/"
+        }
+      ],
+      "date_added": "13417789770109202",
+      "date_modified": "13418118784355197",
+      "guid": "0bc5d13f-2cba-5d74-951f-3f233fe6c908",
+      "id": "1",
+      "name": "Bookmarks Bar",
+      "type": "folder"
+    },
+    "other": {
+      "children": [
+        {
+          "date_added": "13418200000000000",
+          "guid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "id": "6",
+          "name": "Other Example",
+          "type": "url",
+          "url": "https://other.example.com/"
+        }
+      ],
+      "date_added": "13417789770109202",
+      "date_modified": "13418200000000000",
+      "guid": "82b081ec-3dd3-529c-8475-ab6c344590dd",
+      "id": "2",
+      "name": "Other Bookmarks",
+      "type": "folder"
+    },
+    "synced": {
+      "children": [
+        {
+          "date_added": "13418300000000000",
+          "guid": "mobile-guid-0001",
+          "id": "7",
+          "name": "Mobile Bookmark",
+          "type": "url",
+          "url": "https://mobile.example.com/"
+        }
+      ],
+      "date_added": "13417789770109202",
+      "date_modified": "0",
+      "guid": "4cf2e351-0e85-532b-bb37-df045d8f8d0f",
+      "id": "3",
+      "name": "Mobile Bookmarks",
+      "type": "folder"
+    }
+  },
+  "version": 1
+}
