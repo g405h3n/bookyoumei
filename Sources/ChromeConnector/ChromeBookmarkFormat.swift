@@ -1,12 +1,12 @@
 import Foundation
 
-struct ChromeBookmarksFile: Decodable {
+struct ChromeBookmarksFile: Codable {
     let checksum: String
     let roots: ChromeRoots
     let version: Int
 }
 
-struct ChromeRoots: Decodable {
+struct ChromeRoots: Codable {
     let bookmarkBar: ChromeNode
     let other: ChromeNode
     let synced: ChromeNode
@@ -18,7 +18,7 @@ struct ChromeRoots: Decodable {
     }
 }
 
-struct ChromeNode: Decodable {
+struct ChromeNode: Codable {
     let children: [ChromeNode]?
     let dateAdded: String?
     let dateModified: String?
