@@ -29,11 +29,11 @@ public struct URLNormalizer: Sendable {
             components.host = host.lowercased()
         }
 
-        var path = components.percentEncodedPath.removingPercentEncoding ?? components.percentEncodedPath
+        var path = components.percentEncodedPath
         while path.count > 1 && path.hasSuffix("/") {
             path.removeLast()
         }
-        components.percentEncodedPath = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
+        components.percentEncodedPath = path
 
         if let queryItems = components.queryItems {
             let filtered = queryItems.filter { !isTrackingParameter($0.name) }

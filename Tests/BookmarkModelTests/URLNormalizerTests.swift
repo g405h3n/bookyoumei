@@ -49,4 +49,22 @@ struct URLNormalizerTests {
 
         #expect(output == input)
     }
+
+    @Test func relativeURLFallsBackToOriginalString() {
+        let normalizer = URLNormalizer()
+        let input = "/path/?utm_source=ads&x=1"
+
+        let output = normalizer.storageNormalized(input)
+
+        #expect(output == input)
+    }
+
+    @Test func storageNormalizationPreservesEncodedPathSemantics() {
+        let normalizer = URLNormalizer()
+        let input = "https://example.com/a%2Fb/?utm_source=ads&x=1"
+
+        let output = normalizer.storageNormalized(input)
+
+        #expect(output == "https://example.com/a%2Fb?x=1")
+    }
 }
