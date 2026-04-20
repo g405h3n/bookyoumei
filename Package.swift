@@ -10,6 +10,10 @@ let package = Package(
         .target(name: "SafariConnector", dependencies: ["BookmarkModel"]),
         .target(name: "Store", dependencies: ["BookmarkModel"]),
         .target(name: "MergeEngine", dependencies: ["BookmarkModel"]),
+        .target(
+            name: "SyncEngine",
+            dependencies: ["BookmarkModel", "ChromeConnector", "SafariConnector", "Store", "MergeEngine"]
+        ),
         .testTarget(name: "BookmarkModelTests", dependencies: ["BookmarkModel"]),
         .testTarget(name: "ChromeConnectorTests", dependencies: ["ChromeConnector"],
                     resources: [.copy("Fixtures")]),
@@ -17,5 +21,6 @@ let package = Package(
                     resources: [.copy("Fixtures")]),
         .testTarget(name: "StoreTests", dependencies: ["Store"]),
         .testTarget(name: "MergeEngineTests", dependencies: ["MergeEngine"]),
+        .testTarget(name: "SyncEngineTests", dependencies: ["SyncEngine"]),
     ]
 )
