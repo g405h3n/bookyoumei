@@ -592,6 +592,204 @@ struct SyncCoordinatorTests {
         #expect(store.writeCallCount == 1)
         #expect(chromeAdapter.lastWrittenItems == nil)
     }
+
+    @Test func snapshotCreatedBeforeSuccessfulWrite() throws {
+        let chromeClient = "chrome-client"
+        let chromeItems = browserItems(
+            clientID: chromeClient,
+            barTitle: "Bookmarks Bar",
+            bookmarkID: "chrome-bookmark-1",
+            bookmarkTitle: "Example",
+            bookmarkURL: "https://example.com"
+        )
+
+        let initialDocument = StoreDocument(
+            metadata: StoreMetadata(
+                schemaVersion: BookmarkStore.schemaVersion,
+                storeRevision: 5,
+                writtenByClientID: "seed",
+                updatedAt: Date(timeIntervalSince1970: 1_700_000_000),
+                clients: []
+            ),
+            items: []
+        )
+
+        let store = InMemoryStore(document: initialDocument)
+        let antiChurn = InMemoryAntiChurnStateStore()
+        let chromeAdapter = MockBrowserSyncAdapter(itemsToRead: chromeItems)
+        let coordinator = SyncCoordinator(
+            store: store,
+            adapters: [.chrome: chromeAdapter],
+            antiChurnStateStore: antiChurn
+        )
+
+        let request = SyncCycleRequest(
+            writerClientID: "sync-mac-1",
+            browsers: [
+                SyncBrowserConfig(
+                    browser: .chrome,
+                    clientID: chromeClient,
+                    direction: .both,
+                    bookmarksFileURL: URL(filePath: "/tmp/chrome")
+                ),
+            ],
+            sortAfterImport: false
+        )
+
+        _ = try coordinator.runCycle(request: request)
+
+        #expect(store.createSnapshotCallCount == 1)
+        #expect(store.removeSnapshotCallCount == 0)
+        #expect(store.lastSnapshot?.metadata.storeRevision == 5)
+    }
+
+    @Test func firstWriteFromEmptyStoreCreatesSnapshotArtifact() throws {
+        let chromeClient = "chrome-client"
+        let chromeItems = browserItems(
+            clientID: chromeClient,
+            barTitle: "Bookmarks Bar",
+            bookmarkID: "chrome-bookmark-1",
+            bookmarkTitle: "Example",
+            bookmarkURL: "https://example.com"
+        )
+
+        let store = InMemoryStore(document: nil)
+        let antiChurn = InMemoryAntiChurnStateStore()
+        let chromeAdapter = MockBrowserSyncAdapter(itemsToRead: chromeItems)
+        let coordinator = SyncCoordinator(
+            store: store,
+            adapters: [.chrome: chromeAdapter],
+            antiChurnStateStore: antiChurn
+        )
+
+        let request = SyncCycleRequest(
+            writerClientID: "sync-mac-1",
+            browsers: [
+                SyncBrowserConfig(
+                    browser: .chrome,
+                    clientID: chromeClient,
+                    direction: .both,
+                    bookmarksFileURL: URL(filePath: "/tmp/chrome")
+                ),
+            ],
+            sortAfterImport: false
+        )
+
+        _ = try coordinator.runCycle(request: request)
+
+        #expect(store.createSnapshotCallCount == 1)
+        #expect(store.lastSnapshot?.metadata.storeRevision == 0)
+        #expect(store.lastSnapshot?.items.isEmpty == true)
+    }
+
+    @Test func noOpCycleDoesNotCreateSnapshot() throws {
+        let chromeClient = "chrome-client"
+        let canonicalItems = browserItems(
+            clientID: chromeClient,
+            barTitle: "Bookmarks Bar",
+            bookmarkID: "chrome-bookmark-1",
+            bookmarkTitle: "Example",
+            bookmarkURL: "https://example.com"
+        )
+
+        let initialDocument = StoreDocument(
+            metadata: StoreMetadata(
+                schemaVersion: BookmarkStore.schemaVersion,
+                storeRevision: 7,
+                writtenByClientID: "seed",
+                updatedAt: Date(timeIntervalSince1970: 1_700_000_000),
+                clients: []
+            ),
+            items: canonicalItems
+        )
+
+        let store = InMemoryStore(document: initialDocument)
+        let antiChurn = InMemoryAntiChurnStateStore()
+        let chromeAdapter = MockBrowserSyncAdapter(itemsToRead: canonicalItems)
+        let coordinator = SyncCoordinator(
+            store: store,
+            adapters: [.chrome: chromeAdapter],
+            antiChurnStateStore: antiChurn
+        )
+
+        let request = SyncCycleRequest(
+            writerClientID: "sync-mac-1",
+            browsers: [
+                SyncBrowserConfig(
+                    browser: .chrome,
+                    clientID: chromeClient,
+                    direction: .both,
+                    bookmarksFileURL: URL(filePath: "/tmp/chrome")
+                ),
+            ],
+            sortAfterImport: false
+        )
+
+        let result = try coordinator.runCycle(request: request)
+        #expect(result.didWriteStore == false)
+        #expect(store.createSnapshotCallCount == 0)
+    }
+
+    @Test func retryPathReplacesFailedAttemptSnapshotArtifact() throws {
+        let chromeClient = "chrome-client"
+        let localItems = browserItems(
+            clientID: chromeClient,
+            barTitle: "Bookmarks Bar",
+            bookmarkID: "bookmark-a",
+            bookmarkTitle: "A",
+            bookmarkURL: "https://a.example.com"
+        )
+        let baseItems = browserItems(
+            clientID: chromeClient,
+            barTitle: "Bookmarks Bar",
+            bookmarkID: nil,
+            bookmarkTitle: nil,
+            bookmarkURL: nil
+        )
+
+        let initialDocument = StoreDocument(
+            metadata: StoreMetadata(
+                schemaVersion: BookmarkStore.schemaVersion,
+                storeRevision: 1,
+                writtenByClientID: "seed",
+                updatedAt: Date(timeIntervalSince1970: 1_700_000_000),
+                clients: []
+            ),
+            items: baseItems
+        )
+
+        let store = InMemoryStore(
+            document: initialDocument,
+            failFirstWriteWithConflict: true
+        )
+        let antiChurn = InMemoryAntiChurnStateStore()
+        let chromeAdapter = MockBrowserSyncAdapter(itemsToRead: localItems)
+        let coordinator = SyncCoordinator(
+            store: store,
+            adapters: [.chrome: chromeAdapter],
+            antiChurnStateStore: antiChurn
+        )
+
+        let request = SyncCycleRequest(
+            writerClientID: "sync-mac-1",
+            browsers: [
+                SyncBrowserConfig(
+                    browser: .chrome,
+                    clientID: chromeClient,
+                    direction: .both,
+                    bookmarksFileURL: URL(filePath: "/tmp/chrome")
+                ),
+            ],
+            sortAfterImport: false
+        )
+
+        _ = try coordinator.runCycle(request: request)
+
+        #expect(store.createSnapshotCallCount == 2)
+        #expect(store.removeSnapshotCallCount == 1)
+        #expect(store.remainingSnapshotCount == 1)
+        #expect(store.lastSnapshot?.metadata.storeRevision == 2)
+    }
 }
 
 // swiftlint:enable type_body_length function_body_length trailing_comma
@@ -771,9 +969,17 @@ private final class MockBrowserSyncAdapter: BrowserSyncAdapter {
 private final class InMemoryStore: BookmarkStoreClient {
     var document: StoreDocument?
     var writeCallCount = 0
+    var createSnapshotCallCount = 0
+    var removeSnapshotCallCount = 0
+    var lastSnapshot: StoreDocument?
+    var remainingSnapshotCount: Int {
+        snapshots.count
+    }
+
     private var failFirstWriteWithConflict: Bool
     private let adoptIncomingItemsOnFirstConflict: Bool
     private let conflictReplacementItems: [BookmarkItem]?
+    private var snapshots: [URL: StoreDocument] = [:]
 
     init(
         document: StoreDocument?,
@@ -833,5 +1039,22 @@ private final class InMemoryStore: BookmarkStoreClient {
         )
         document = updated
         return updated
+    }
+
+    func createSnapshot(from document: StoreDocument, now _: Date) throws -> URL {
+        createSnapshotCallCount += 1
+        lastSnapshot = document
+        let url = URL(filePath: "/tmp/snapshot-\(createSnapshotCallCount).json")
+        snapshots[url] = document
+        return url
+    }
+
+    func removeSnapshot(at snapshotURL: URL) throws {
+        removeSnapshotCallCount += 1
+        snapshots.removeValue(forKey: snapshotURL)
+    }
+
+    func loadLatestSnapshot() throws -> StoreDocument? {
+        snapshots.values.sorted(by: { $0.metadata.updatedAt < $1.metadata.updatedAt }).last
     }
 }

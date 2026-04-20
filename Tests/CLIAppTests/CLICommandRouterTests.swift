@@ -1,5 +1,6 @@
 @testable import CLIApp
 import Foundation
+import Store
 import SyncEngine
 import Testing
 
@@ -29,6 +30,9 @@ struct CLICommandRouterTests {
 
         #expect(harness.router.execute(arguments: ["reset"], io: harness.testIO) == 0)
         #expect(harness.resetServiceBuilder.builtService.resetCallCount == 1)
+
+        #expect(harness.router.execute(arguments: ["undo"], io: harness.testIO) == 0)
+        #expect(harness.undoServiceBuilder.builtService.undoCallCount == 1)
     }
 
     @Test func unknownCommandReturnsUsageError() {
@@ -130,6 +134,30 @@ struct CLICommandRouterTests {
         #expect(harness.testIO.stderr.contains { $0.contains("limit=100") })
         #expect(harness.testIO.stderr.contains { $0.contains("actual=101") })
     }
+
+    @Test func undoFailsWhenNoSnapshotsExist() {
+        let harness = RouterHarness()
+        harness.undoServiceBuilder.builtService.undoError = BookmarkStoreError.snapshotNotFound
+
+        let exitCode = harness.router.execute(arguments: ["undo"], io: harness.testIO)
+
+        #expect(exitCode == 1)
+        #expect(harness.undoServiceBuilder.builtService.undoCallCount == 1)
+        #expect(harness.testIO.stderr.contains { $0.contains("no snapshots available") })
+    }
+
+    @Test func undoReportsExplicitNoExportTargetsSummary() {
+        let harness = RouterHarness()
+        harness.undoServiceBuilder.builtService.undoResult = UndoResult(
+            restoredRevision: 12,
+            exportedBrowsers: []
+        )
+
+        let exitCode = harness.router.execute(arguments: ["undo"], io: harness.testIO)
+
+        #expect(exitCode == 0)
+        #expect(harness.testIO.stdout.contains { $0.contains("no export targets") })
+    }
 }
 
 private final class RouterHarness {
@@ -138,6 +166,7 @@ private final class RouterHarness {
     let daemonControlBuilder = StubDaemonControlBuilder()
     let resetServiceBuilder = StubResetServiceBuilder()
     let logStoreBuilder = StubLogStoreBuilder()
+    let undoServiceBuilder = StubUndoServiceBuilder()
     let testIO = TestIO()
 
     lazy var router = CLICommandRouter(
@@ -145,6 +174,7 @@ private final class RouterHarness {
         syncService: syncService,
         daemonControlBuilder: daemonControlBuilder,
         resetServiceBuilder: resetServiceBuilder,
-        logStoreBuilder: logStoreBuilder
+        logStoreBuilder: logStoreBuilder,
+        undoServiceBuilder: undoServiceBuilder
     )
 }

@@ -18,6 +18,9 @@ public protocol BookmarkStoreClient {
         expectedStoreRevision: Int?,
         now: Date
     ) throws -> StoreDocument
+    func createSnapshot(from document: StoreDocument, now: Date) throws -> URL
+    func removeSnapshot(at snapshotURL: URL) throws
+    func loadLatestSnapshot() throws -> StoreDocument?
 }
 
 extension BookmarkStore: BookmarkStoreClient {}

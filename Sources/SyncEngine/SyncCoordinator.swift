@@ -68,6 +68,7 @@ public struct SyncCoordinator {
             writeOutcome = try writeWithSingleRetry(
                 items: sortedItems,
                 snapshots: snapshots,
+                initialDocument: initialDocument,
                 baseItems: initialItems,
                 initialRevision: initialRevision,
                 initialClients: initialClients,
@@ -188,6 +189,7 @@ public struct SyncCoordinator {
     private func writeWithSingleRetry(
         items: [BookmarkItem],
         snapshots: [ImportSnapshot],
+        initialDocument: StoreDocument?,
         baseItems: [BookmarkItem],
         initialRevision: Int,
         initialClients: [StoreClient],
@@ -195,11 +197,23 @@ public struct SyncCoordinator {
         importedBrowsers: [SyncBrowser],
         skippedByAntiChurn: [SyncBrowser]
     ) throws -> WriteOutcome {
+        var firstAttemptSnapshotURL: URL?
         do {
             try enforceSafeSyncLimit(
                 changeCount: effectiveChangeCount(baseItems: baseItems, candidateItems: items),
                 limit: request.safeSyncLimit
             )
+            let firstAttemptSnapshotDocument = initialDocument ?? StoreDocument(
+                metadata: StoreMetadata(
+                    schemaVersion: BookmarkStore.schemaVersion,
+                    storeRevision: initialRevision,
+                    writtenByClientID: request.writerClientID,
+                    updatedAt: request.now,
+                    clients: initialClients
+                ),
+                items: baseItems
+            )
+            firstAttemptSnapshotURL = try store.createSnapshot(from: firstAttemptSnapshotDocument, now: request.now)
             let written = try store.write(
                 items: items,
                 writerClientID: request.writerClientID,
@@ -215,6 +229,10 @@ public struct SyncCoordinator {
                 skippedByAntiChurn: skippedByAntiChurn
             )
         } catch BookmarkStoreError.revisionConflict {
+            if let firstAttemptSnapshotURL {
+                try? store.removeSnapshot(at: firstAttemptSnapshotURL)
+            }
+
             let refreshed = try store.load()
             let refreshedItems = refreshed?.items ?? []
             let refreshedRevision = refreshed?.metadata.storeRevision ?? 0
@@ -247,13 +265,26 @@ public struct SyncCoordinator {
                 changeCount: effectiveChangeCount(baseItems: refreshedItems, candidateItems: replayedItems),
                 limit: request.safeSyncLimit
             )
-            let written = try store.write(
-                items: replayedItems,
-                writerClientID: request.writerClientID,
-                clients: refreshedClients,
-                expectedStoreRevision: refreshedRevision,
-                now: request.now
-            )
+
+            var replaySnapshotURL: URL?
+            if let refreshed {
+                replaySnapshotURL = try store.createSnapshot(from: refreshed, now: request.now)
+            }
+            let written: StoreDocument
+            do {
+                written = try store.write(
+                    items: replayedItems,
+                    writerClientID: request.writerClientID,
+                    clients: refreshedClients,
+                    expectedStoreRevision: refreshedRevision,
+                    now: request.now
+                )
+            } catch {
+                if let replaySnapshotURL {
+                    try? store.removeSnapshot(at: replaySnapshotURL)
+                }
+                throw error
+            }
             return WriteOutcome(
                 didWriteStore: true,
                 document: written,
@@ -261,6 +292,11 @@ public struct SyncCoordinator {
                 importedBrowsers: replay.importedBrowsers,
                 skippedByAntiChurn: replay.skippedByAntiChurn
             )
+        } catch {
+            if let firstAttemptSnapshotURL {
+                try? store.removeSnapshot(at: firstAttemptSnapshotURL)
+            }
+            throw error
         }
     }
 

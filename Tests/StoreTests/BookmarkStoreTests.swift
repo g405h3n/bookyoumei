@@ -3,6 +3,7 @@ import Foundation
 @testable import Store
 import Testing
 
+// swiftlint:disable trailing_comma
 @Suite("BookmarkStore")
 struct BookmarkStoreTests {
     @Test func defaultStoreURLPointsToICloudStoreJSON() {
@@ -141,4 +142,99 @@ struct BookmarkStoreTests {
             _ = try store.load()
         }
     }
+
+    // swiftlint:disable:next function_body_length
+    @Test func latestSnapshotCanRestoreStorePayloadWithMonotonicRevision() throws {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let storeURL = tempDir.appendingPathComponent("store.json")
+        let snapshotsURL = tempDir.appendingPathComponent("custom-snapshots")
+        let store = BookmarkStore(fileURL: storeURL, snapshotsDirectoryURL: snapshotsURL)
+
+        let seedClients = [
+            StoreClient(
+                clientID: "chrome-client",
+                browser: .chrome,
+                platform: .macos,
+                profileHint: "Default",
+                status: .active
+            ),
+            StoreClient(
+                clientID: "safari-client",
+                browser: .safari,
+                platform: .macos,
+                status: .active
+            ),
+        ]
+        let current = try store.write(
+            items: [
+                BookmarkItem(
+                    id: "bookmarks_bar",
+                    type: .folder,
+                    parentID: nil,
+                    position: 0,
+                    title: "Bookmarks Bar"
+                ),
+            ],
+            writerClientID: "writer-current",
+            clients: seedClients,
+            expectedStoreRevision: nil
+        )
+        #expect(current.metadata.storeRevision == 1)
+
+        let snapshotDocument = StoreDocument(
+            metadata: StoreMetadata(
+                schemaVersion: BookmarkStore.schemaVersion,
+                storeRevision: 1,
+                writtenByClientID: "writer-snapshot",
+                updatedAt: Date(timeIntervalSince1970: 1_700_000_000),
+                clients: [
+                    StoreClient(
+                        clientID: "chrome-client",
+                        browser: .chrome,
+                        platform: .macos,
+                        profileHint: "Default",
+                        status: .unavailable
+                    ),
+                ]
+            ),
+            items: [
+                BookmarkItem(
+                    id: "bookmarks_bar",
+                    type: .folder,
+                    parentID: nil,
+                    position: 0,
+                    title: "Bookmarks Bar"
+                ),
+                BookmarkItem(
+                    id: "bookmark-1",
+                    type: .bookmark,
+                    parentID: "bookmarks_bar",
+                    position: 0,
+                    title: "Example",
+                    url: "https://example.com/",
+                    identifierMap: ["chrome-client": "bookmark-1"]
+                ),
+            ]
+        )
+
+        _ = try store.createSnapshot(from: snapshotDocument, now: Date(timeIntervalSince1970: 1_700_000_010))
+        let restored = try store.restoreLatestSnapshot(
+            writerClientID: "writer-restore",
+            now: Date(timeIntervalSince1970: 1_700_000_100)
+        )
+
+        #expect(restored.metadata.storeRevision == 2)
+        #expect(restored.metadata.writtenByClientID == "writer-restore")
+        #expect(restored.items == snapshotDocument.items)
+        #expect(restored.metadata.clients == snapshotDocument.metadata.clients)
+
+        let loaded = try #require(try store.load())
+        #expect(loaded == restored)
+        #expect(FileManager.default.fileExists(atPath: snapshotsURL.path))
+    }
 }
+
+// swiftlint:enable trailing_comma

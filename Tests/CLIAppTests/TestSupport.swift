@@ -121,6 +121,28 @@ final class StubLogStoreBuilder: LogStoreBuilding {
     }
 }
 
+final class StubUndoService: UndoServicing {
+    var undoCallCount = 0
+    var undoError: Error?
+    var undoResult = UndoResult(restoredRevision: 1, exportedBrowsers: [.chrome, .safari])
+
+    func undo(config _: RuntimeConfig) throws -> UndoResult {
+        undoCallCount += 1
+        if let undoError {
+            throw undoError
+        }
+        return undoResult
+    }
+}
+
+final class StubUndoServiceBuilder: UndoServiceBuilding {
+    let builtService = StubUndoService()
+
+    func make(config _: RuntimeConfig) -> any UndoServicing {
+        builtService
+    }
+}
+
 final class TestIO: CLIIO {
     var stdout: [String] = []
     var stderr: [String] = []
@@ -161,6 +183,7 @@ final class StubStoreClient: BookmarkStoreClient {
     var lastWrittenClients: [StoreClient]?
     var lastExpectedStoreRevision: Int?
     var simulateRevisionConflictOnFirstWrite = false
+    var snapshots: [StoreDocument] = []
 
     init(document: StoreDocument?) {
         self.document = document
@@ -212,6 +235,21 @@ final class StubStoreClient: BookmarkStoreClient {
         )
         document = next
         return next
+    }
+
+    func createSnapshot(from document: StoreDocument, now _: Date) throws -> URL {
+        snapshots.append(document)
+        return URL(filePath: "/tmp/snapshot-\(snapshots.count).json")
+    }
+
+    func removeSnapshot(at _: URL) throws {
+        if !snapshots.isEmpty {
+            snapshots.removeLast()
+        }
+    }
+
+    func loadLatestSnapshot() throws -> StoreDocument? {
+        snapshots.last
     }
 }
 

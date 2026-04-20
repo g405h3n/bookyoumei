@@ -30,19 +30,22 @@ public final class CLICommandRouter {
     private let daemonControlBuilder: any DaemonControlBuilding
     private let resetServiceBuilder: any ResetServiceBuilding
     private let logStoreBuilder: any LogStoreBuilding
+    private let undoServiceBuilder: any UndoServiceBuilding
 
     public init(
         configLoader: any ConfigLoading,
         syncService: any SyncServicing,
         daemonControlBuilder: any DaemonControlBuilding,
         resetServiceBuilder: any ResetServiceBuilding,
-        logStoreBuilder: any LogStoreBuilding
+        logStoreBuilder: any LogStoreBuilding,
+        undoServiceBuilder: any UndoServiceBuilding
     ) {
         self.configLoader = configLoader
         self.syncService = syncService
         self.daemonControlBuilder = daemonControlBuilder
         self.resetServiceBuilder = resetServiceBuilder
         self.logStoreBuilder = logStoreBuilder
+        self.undoServiceBuilder = undoServiceBuilder
     }
 
     public static func live() -> CLICommandRouter {
@@ -52,7 +55,8 @@ public final class CLICommandRouter {
             syncService: SyncService(),
             daemonControlBuilder: LiveDaemonControlBuilder(),
             resetServiceBuilder: LiveResetServiceBuilder(),
-            logStoreBuilder: LiveLogStoreBuilder()
+            logStoreBuilder: LiveLogStoreBuilder(),
+            undoServiceBuilder: LiveUndoServiceBuilder()
         )
     }
 
@@ -72,6 +76,8 @@ public final class CLICommandRouter {
                 return try handleReset(parsed: parsed, config: config, io: terminalIO)
             case "logs":
                 return try handleLogs(config: config, io: terminalIO)
+            case "undo":
+                return try handleUndo(config: config, io: terminalIO)
             default:
                 terminalIO.writeErr(usage())
                 return 2
@@ -134,12 +140,27 @@ public final class CLICommandRouter {
         return 0
     }
 
+    private func handleUndo(config: RuntimeConfig, io terminalIO: CLIIO) throws -> Int {
+        try config.validateForUndo()
+        let undoService = undoServiceBuilder.make(config: config)
+        let result = try undoService.undo(config: config)
+        terminalIO.writeOut(undoSummary(for: result))
+        return 0
+    }
+
     private func summary(for result: SyncCycleResult) -> String {
         let revision = result.storeRevision.map(String.init) ?? "nil"
         let importedCount = result.importedBrowsers.count
         let exportedCount = result.exportedBrowsers.count
         return "sync complete: wrote_store=\(result.didWriteStore) revision=\(revision) " +
             "import=\(importedCount) export=\(exportedCount)"
+    }
+
+    private func undoSummary(for result: UndoResult) -> String {
+        if result.exportedBrowsers.isEmpty {
+            return "undo complete: revision=\(result.restoredRevision) no export targets"
+        }
+        return "undo complete: revision=\(result.restoredRevision) export=\(result.exportedBrowsers.count)"
     }
 
     private func resolveResetConfirmation(purgeStore: Bool, forceYes: Bool, io terminalIO: CLIIO) throws -> Bool {
@@ -212,7 +233,7 @@ public final class CLICommandRouter {
     }
 
     private func usage() -> String {
-        "usage: bookmarknot <sync|pause|resume|reset|logs> [--config PATH]"
+        "usage: bookmarknot <sync|pause|resume|reset|logs|undo> [--config PATH]"
     }
 }
 
@@ -235,6 +256,10 @@ public protocol LogStoreBuilding {
     func make(config: RuntimeConfig) -> any LogStoring
 }
 
+public protocol UndoServiceBuilding {
+    func make(config: RuntimeConfig) -> any UndoServicing
+}
+
 public struct LiveDaemonControlBuilder: DaemonControlBuilding {
     public init() {}
 
@@ -251,7 +276,10 @@ public struct LiveResetServiceBuilder: ResetServiceBuilding {
 
     public func make(config: RuntimeConfig) -> any ResetServicing {
         ResetService(
-            storeClient: BookmarkStore(fileURL: config.storeFileURL),
+            storeClient: BookmarkStore(
+                fileURL: config.storeFileURL,
+                snapshotsDirectoryURL: config.snapshotsDirectoryURL
+            ),
             runtimeController: NoopRuntimeController()
         )
     }
@@ -262,5 +290,19 @@ public struct LiveLogStoreBuilder: LogStoreBuilding {
 
     public func make(config: RuntimeConfig) -> any LogStoring {
         LogStore(fileURL: config.logFileURL)
+    }
+}
+
+public struct LiveUndoServiceBuilder: UndoServiceBuilding {
+    public init() {}
+
+    public func make(config: RuntimeConfig) -> any UndoServicing {
+        UndoService(
+            storeClient: BookmarkStore(
+                fileURL: config.storeFileURL,
+                snapshotsDirectoryURL: config.snapshotsDirectoryURL
+            ),
+            adapters: BrowserSyncRuntimeFactory.makeAdapters()
+        )
     }
 }

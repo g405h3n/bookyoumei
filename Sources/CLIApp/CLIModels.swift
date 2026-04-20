@@ -108,6 +108,22 @@ public struct RuntimeConfig {
         try validateIdentity()
     }
 
+    func validateForUndo() throws {
+        try validateIdentity()
+        try validateBrowserForUndoExport(
+            clientID: chromeClientID,
+            bookmarksURL: chromeBookmarksURL,
+            direction: chromeSyncDirection,
+            browserLabel: "chrome"
+        )
+        try validateBrowserForUndoExport(
+            clientID: safariClientID,
+            bookmarksURL: safariBookmarksURL,
+            direction: safariSyncDirection,
+            browserLabel: "safari"
+        )
+    }
+
     private func validateIdentity() throws {
         guard !writerClientID.isEmpty else {
             throw CLIError.missingRequiredPath("writer_client_id")
@@ -128,6 +144,23 @@ public struct RuntimeConfig {
         browserLabel: String
     ) throws {
         guard direction == .both || direction == .importOnly || direction == .exportOnly else { return }
+        guard let clientID, !clientID.isEmpty else {
+            throw CLIError.missingRequiredPath("\(browserLabel)_client_id")
+        }
+        guard let bookmarksURL, !bookmarksURL.path.isEmpty else {
+            throw CLIError.missingRequiredPath("\(browserLabel)_bookmarks_path")
+        }
+    }
+
+    private func validateBrowserForUndoExport(
+        clientID: String?,
+        bookmarksURL: URL?,
+        direction: DirectionSetting,
+        browserLabel: String
+    ) throws {
+        guard direction == .both || direction == .exportOnly else {
+            return
+        }
         guard let clientID, !clientID.isEmpty else {
             throw CLIError.missingRequiredPath("\(browserLabel)_client_id")
         }
