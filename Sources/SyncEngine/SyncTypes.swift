@@ -37,12 +37,20 @@ public struct SyncCycleRequest: Sendable {
     public let writerClientID: String
     public let browsers: [SyncBrowserConfig]
     public let sortAfterImport: Bool
+    public let safeSyncLimit: Int
     public let now: Date
 
-    public init(writerClientID: String, browsers: [SyncBrowserConfig], sortAfterImport: Bool, now: Date = Date()) {
+    public init(
+        writerClientID: String,
+        browsers: [SyncBrowserConfig],
+        sortAfterImport: Bool,
+        safeSyncLimit: Int = 100,
+        now: Date = Date()
+    ) {
         self.writerClientID = writerClientID
         self.browsers = browsers
         self.sortAfterImport = sortAfterImport
+        self.safeSyncLimit = safeSyncLimit
         self.now = now
     }
 }

@@ -32,6 +32,7 @@ public final class SyncService: SyncServicing {
             writerClientID: config.writerClientID,
             browsers: browserConfigs,
             sortAfterImport: config.sortAfterImport,
+            safeSyncLimit: config.safeSyncLimit,
             now: Date()
         )
 

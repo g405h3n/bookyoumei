@@ -23,7 +23,7 @@ public struct ConfigLoader: ConfigLoading {
         let dictionary = parse(raw)
         let defaultConfig = defaults()
 
-        return RuntimeConfig(
+        return try RuntimeConfig(
             writerClientID: dictionary["writer_client_id"] ?? "",
             chromeClientID: dictionary["chrome_client_id"] ?? defaultConfig.chromeClientID,
             safariClientID: dictionary["safari_client_id"] ?? defaultConfig.safariClientID,
@@ -40,6 +40,10 @@ public struct ConfigLoader: ConfigLoading {
                 .snapshotsDirectoryURL,
             stateDirectoryURL: resolvedURL(from: dictionary["state_path"]) ?? defaultConfig.stateDirectoryURL,
             sortAfterImport: bool(from: dictionary["sort_after_import"]) ?? defaultConfig.sortAfterImport,
+            safeSyncLimit: int(
+                from: dictionary["safe_sync_limit"],
+                key: "safe_sync_limit"
+            ) ?? defaultConfig.safeSyncLimit,
             logFileURL: resolvedURL(from: dictionary["log_path"]) ?? defaultConfig.logFileURL
         )
     }
@@ -70,6 +74,7 @@ public struct ConfigLoader: ConfigLoading {
             snapshotsDirectoryURL: snapshotsDirectoryURL,
             stateDirectoryURL: stateDirectoryURL,
             sortAfterImport: false,
+            safeSyncLimit: 100,
             logFileURL: stateDirectoryURL.appendingPathComponent("events.log")
         )
     }
@@ -108,6 +113,14 @@ public struct ConfigLoader: ConfigLoading {
         default:
             return nil
         }
+    }
+
+    private func int(from value: String?, key: String) throws -> Int? {
+        guard let value else { return nil }
+        guard let parsed = Int(value) else {
+            throw CLIError.invalidArguments("invalid \(key): \(value)")
+        }
+        return parsed
     }
 
     private func defaultConfigPath() -> String {

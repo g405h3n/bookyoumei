@@ -38,6 +38,7 @@ struct ResetServiceTests {
                 snapshotsDirectoryURL: snapshotsURL,
                 stateDirectoryURL: directory,
                 sortAfterImport: false,
+                safeSyncLimit: 100,
                 logFileURL: local.logFileURL
             )
 
@@ -81,6 +82,7 @@ struct ResetServiceTests {
                 snapshotsDirectoryURL: snapshotsURL,
                 stateDirectoryURL: directory,
                 sortAfterImport: false,
+                safeSyncLimit: 100,
                 logFileURL: directory.appendingPathComponent("events.log")
             )
 
@@ -118,6 +120,7 @@ struct ResetServiceTests {
                 snapshotsDirectoryURL: snapshotsURL,
                 stateDirectoryURL: directory,
                 sortAfterImport: false,
+                safeSyncLimit: 100,
                 logFileURL: directory.appendingPathComponent("events.log")
             )
 
@@ -151,6 +154,7 @@ struct ResetServiceTests {
             snapshotsDirectoryURL: directory.appendingPathComponent("unused-snapshots"),
             stateDirectoryURL: directory,
             sortAfterImport: false,
+            safeSyncLimit: 100,
             logFileURL: directory.appendingPathComponent("unused.log")
         )
 

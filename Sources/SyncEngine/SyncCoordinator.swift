@@ -68,6 +68,7 @@ public struct SyncCoordinator {
             writeOutcome = try writeWithSingleRetry(
                 items: sortedItems,
                 snapshots: snapshots,
+                baseItems: initialItems,
                 initialRevision: initialRevision,
                 initialClients: initialClients,
                 request: request,
@@ -187,6 +188,7 @@ public struct SyncCoordinator {
     private func writeWithSingleRetry(
         items: [BookmarkItem],
         snapshots: [ImportSnapshot],
+        baseItems: [BookmarkItem],
         initialRevision: Int,
         initialClients: [StoreClient],
         request: SyncCycleRequest,
@@ -194,6 +196,10 @@ public struct SyncCoordinator {
         skippedByAntiChurn: [SyncBrowser]
     ) throws -> WriteOutcome {
         do {
+            try enforceSafeSyncLimit(
+                changeCount: effectiveChangeCount(baseItems: baseItems, candidateItems: items),
+                limit: request.safeSyncLimit
+            )
             let written = try store.write(
                 items: items,
                 writerClientID: request.writerClientID,
@@ -237,6 +243,10 @@ public struct SyncCoordinator {
                 )
             }
 
+            try enforceSafeSyncLimit(
+                changeCount: effectiveChangeCount(baseItems: refreshedItems, candidateItems: replayedItems),
+                limit: request.safeSyncLimit
+            )
             let written = try store.write(
                 items: replayedItems,
                 writerClientID: request.writerClientID,
@@ -269,10 +279,44 @@ public struct SyncCoordinator {
         }
         return lhs.browser.rawValue < rhs.browser.rawValue
     }
+
+    private func effectiveChangeCount(baseItems: [BookmarkItem], candidateItems: [BookmarkItem]) -> Int {
+        let baseByID = Dictionary(uniqueKeysWithValues: baseItems.map { ($0.id, $0) })
+        let candidateByID = Dictionary(uniqueKeysWithValues: candidateItems.map { ($0.id, $0) })
+
+        let baseIDs = Set(baseByID.keys)
+        let candidateIDs = Set(candidateByID.keys)
+
+        let addedCount = candidateIDs.subtracting(baseIDs).count
+        let deletedCount = baseIDs.subtracting(candidateIDs).count
+        let updatedCount = baseIDs.intersection(candidateIDs).count(where: { id in
+            baseByID[id] != candidateByID[id]
+        })
+
+        return addedCount + updatedCount + deletedCount
+    }
+
+    private func enforceSafeSyncLimit(changeCount: Int, limit: Int) throws {
+        if changeCount > limit {
+            throw SyncCoordinatorError.safeSyncLimitExceeded(limit: limit, actual: changeCount)
+        }
+    }
 }
 
 public enum SyncCoordinatorError: Error, Equatable {
     case missingAdapter(SyncBrowser)
+    case safeSyncLimitExceeded(limit: Int, actual: Int)
+}
+
+extension SyncCoordinatorError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case let .missingAdapter(browser):
+            "missing browser adapter: \(browser.rawValue)"
+        case let .safeSyncLimitExceeded(limit, actual):
+            "safe sync limit exceeded: limit=\(limit) actual=\(actual)"
+        }
+    }
 }
 
 public struct BookmarkSemanticSignatureBuilder {

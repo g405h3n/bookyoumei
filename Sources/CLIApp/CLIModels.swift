@@ -52,6 +52,7 @@ public struct RuntimeConfig {
     public let snapshotsDirectoryURL: URL
     public let stateDirectoryURL: URL
     public let sortAfterImport: Bool
+    public let safeSyncLimit: Int
     public let logFileURL: URL
 
     public init(
@@ -66,6 +67,7 @@ public struct RuntimeConfig {
         snapshotsDirectoryURL: URL,
         stateDirectoryURL: URL,
         sortAfterImport: Bool,
+        safeSyncLimit: Int,
         logFileURL: URL
     ) {
         self.writerClientID = writerClientID
@@ -79,10 +81,14 @@ public struct RuntimeConfig {
         self.snapshotsDirectoryURL = snapshotsDirectoryURL
         self.stateDirectoryURL = stateDirectoryURL
         self.sortAfterImport = sortAfterImport
+        self.safeSyncLimit = safeSyncLimit
         self.logFileURL = logFileURL
     }
 
     func validateForSync() throws {
+        if safeSyncLimit < 0 {
+            throw CLIError.invalidArguments("safe_sync_limit must be >= 0")
+        }
         try validateIdentity()
         try validateBrowser(
             clientID: chromeClientID,

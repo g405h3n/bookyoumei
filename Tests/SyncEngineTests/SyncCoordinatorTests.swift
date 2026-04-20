@@ -424,6 +424,174 @@ struct SyncCoordinatorTests {
         #expect(result.storeRevision == 11)
         #expect(store.writeCallCount == 1)
     }
+
+    @Test func safeSyncLimitExceededAbortsBeforeWriteAndExport() throws {
+        let chromeClient = "chrome-client"
+        let safariClient = "safari-client"
+
+        let chromeItems = browserItems(
+            clientID: chromeClient,
+            barTitle: "Bookmarks Bar",
+            bookmarkID: "chrome-bookmark-1",
+            bookmarkTitle: "Example",
+            bookmarkURL: "https://example.com"
+        )
+        let safariItems = browserItems(
+            clientID: safariClient,
+            barTitle: "Favorites Bar",
+            bookmarkID: nil,
+            bookmarkTitle: nil,
+            bookmarkURL: nil
+        )
+
+        let store = InMemoryStore(document: nil)
+        let antiChurn = InMemoryAntiChurnStateStore()
+        let chromeAdapter = MockBrowserSyncAdapter(itemsToRead: chromeItems)
+        let safariAdapter = MockBrowserSyncAdapter(itemsToRead: safariItems)
+        let coordinator = SyncCoordinator(
+            store: store,
+            adapters: [.chrome: chromeAdapter, .safari: safariAdapter],
+            antiChurnStateStore: antiChurn
+        )
+
+        let request = SyncCycleRequest(
+            writerClientID: "sync-mac-1",
+            browsers: [
+                SyncBrowserConfig(
+                    browser: .chrome,
+                    clientID: chromeClient,
+                    direction: .both,
+                    bookmarksFileURL: URL(filePath: "/tmp/chrome")
+                ),
+                SyncBrowserConfig(
+                    browser: .safari,
+                    clientID: safariClient,
+                    direction: .both,
+                    bookmarksFileURL: URL(filePath: "/tmp/safari")
+                ),
+            ],
+            sortAfterImport: false,
+            safeSyncLimit: 0
+        )
+
+        do {
+            _ = try coordinator.runCycle(request: request)
+            Issue.record("Expected safe sync limit failure")
+        } catch let error as SyncCoordinatorError {
+            #expect(error == .safeSyncLimitExceeded(limit: 0, actual: 3))
+        }
+
+        #expect(store.writeCallCount == 0)
+        #expect(chromeAdapter.lastWrittenItems == nil)
+        #expect(safariAdapter.lastWrittenItems == nil)
+    }
+
+    @Test func safeSyncLimitAllowsCycleWhenActualEqualsLimit() throws {
+        let chromeClient = "chrome-client"
+
+        let chromeItems = browserItems(
+            clientID: chromeClient,
+            barTitle: "Bookmarks Bar",
+            bookmarkID: "chrome-bookmark-1",
+            bookmarkTitle: "Example",
+            bookmarkURL: "https://example.com"
+        )
+
+        let store = InMemoryStore(document: nil)
+        let antiChurn = InMemoryAntiChurnStateStore()
+        let chromeAdapter = MockBrowserSyncAdapter(itemsToRead: chromeItems)
+        let coordinator = SyncCoordinator(
+            store: store,
+            adapters: [.chrome: chromeAdapter],
+            antiChurnStateStore: antiChurn
+        )
+
+        let request = SyncCycleRequest(
+            writerClientID: "sync-mac-1",
+            browsers: [
+                SyncBrowserConfig(
+                    browser: .chrome,
+                    clientID: chromeClient,
+                    direction: .both,
+                    bookmarksFileURL: URL(filePath: "/tmp/chrome")
+                ),
+            ],
+            sortAfterImport: false,
+            safeSyncLimit: 3
+        )
+
+        let result = try coordinator.runCycle(request: request)
+        #expect(result.didWriteStore)
+        #expect(store.writeCallCount == 1)
+    }
+
+    @Test func safeSyncLimitAppliesAfterRevisionConflictReplay() throws {
+        let chromeClient = "chrome-client"
+
+        let localItems = browserItems(
+            clientID: chromeClient,
+            barTitle: "Bookmarks Bar",
+            bookmarkID: "bookmark-a",
+            bookmarkTitle: "A",
+            bookmarkURL: "https://a.example.com"
+        )
+        let baseItems = browserItems(
+            clientID: chromeClient,
+            barTitle: "Bookmarks Bar",
+            bookmarkID: nil,
+            bookmarkTitle: nil,
+            bookmarkURL: nil
+        )
+        let conflictItems = conflictCanonicalItems(clientID: chromeClient)
+
+        let initialDocument = StoreDocument(
+            metadata: StoreMetadata(
+                schemaVersion: 1,
+                storeRevision: 1,
+                writtenByClientID: "seed",
+                updatedAt: Date(timeIntervalSince1970: 1_700_000_000),
+                clients: []
+            ),
+            items: baseItems
+        )
+
+        let store = InMemoryStore(
+            document: initialDocument,
+            failFirstWriteWithConflict: true,
+            conflictReplacementItems: conflictItems
+        )
+        let antiChurn = InMemoryAntiChurnStateStore()
+        let chromeAdapter = MockBrowserSyncAdapter(itemsToRead: localItems)
+        let coordinator = SyncCoordinator(
+            store: store,
+            adapters: [.chrome: chromeAdapter],
+            antiChurnStateStore: antiChurn
+        )
+
+        let request = SyncCycleRequest(
+            writerClientID: "sync-mac-1",
+            browsers: [
+                SyncBrowserConfig(
+                    browser: .chrome,
+                    clientID: chromeClient,
+                    direction: .both,
+                    bookmarksFileURL: URL(filePath: "/tmp/chrome")
+                ),
+            ],
+            sortAfterImport: false,
+            safeSyncLimit: 1
+        )
+
+        do {
+            _ = try coordinator.runCycle(request: request)
+            Issue.record("Expected safe sync limit failure in replay")
+        } catch let error as SyncCoordinatorError {
+            #expect(error == .safeSyncLimitExceeded(limit: 1, actual: 2))
+        }
+
+        #expect(store.writeCallCount == 1)
+        #expect(chromeAdapter.lastWrittenItems == nil)
+    }
 }
 
 // swiftlint:enable type_body_length function_body_length trailing_comma
@@ -520,6 +688,68 @@ private func canonicalItemsWithSharedBookmark(chromeClient: String, safariClient
     return items
 }
 
+// swiftlint:disable:next function_body_length
+private func conflictCanonicalItems(clientID: String) -> [BookmarkItem] {
+    let barID = "\(clientID)-bar"
+    let otherID = "\(clientID)-other"
+
+    var items: [BookmarkItem] = []
+    items.append(
+        BookmarkItem(
+            id: "bookmarks_bar",
+            type: .folder,
+            parentID: nil,
+            position: 0,
+            title: "Bookmarks Bar",
+            identifierMap: [clientID: barID]
+        )
+    )
+    items.append(
+        BookmarkItem(
+            id: "other_bookmarks",
+            type: .folder,
+            parentID: nil,
+            position: 1,
+            title: "Other Bookmarks",
+            identifierMap: [clientID: otherID]
+        )
+    )
+    items.append(
+        BookmarkItem(
+            id: "canonical-a",
+            type: .bookmark,
+            parentID: "bookmarks_bar",
+            position: 0,
+            title: "A",
+            url: "https://a.example.com",
+            identifierMap: [clientID: "bookmark-a"]
+        )
+    )
+    items.append(
+        BookmarkItem(
+            id: "canonical-b",
+            type: .bookmark,
+            parentID: "bookmarks_bar",
+            position: 1,
+            title: "B",
+            url: "https://b.example.com",
+            identifierMap: [clientID: "bookmark-b"]
+        )
+    )
+    items.append(
+        BookmarkItem(
+            id: "canonical-c",
+            type: .bookmark,
+            parentID: "bookmarks_bar",
+            position: 2,
+            title: "C",
+            url: "https://c.example.com",
+            identifierMap: [clientID: "bookmark-c"]
+        )
+    )
+    return items
+}
+
 private final class MockBrowserSyncAdapter: BrowserSyncAdapter {
     var itemsToRead: [BookmarkItem]
     var lastWrittenItems: [BookmarkItem]?
@@ -543,15 +773,18 @@ private final class InMemoryStore: BookmarkStoreClient {
     var writeCallCount = 0
     private var failFirstWriteWithConflict: Bool
     private let adoptIncomingItemsOnFirstConflict: Bool
+    private let conflictReplacementItems: [BookmarkItem]?
 
     init(
         document: StoreDocument?,
         failFirstWriteWithConflict: Bool = false,
-        adoptIncomingItemsOnFirstConflict: Bool = false
+        adoptIncomingItemsOnFirstConflict: Bool = false,
+        conflictReplacementItems: [BookmarkItem]? = nil
     ) {
         self.document = document
         self.failFirstWriteWithConflict = failFirstWriteWithConflict
         self.adoptIncomingItemsOnFirstConflict = adoptIncomingItemsOnFirstConflict
+        self.conflictReplacementItems = conflictReplacementItems
     }
 
     func load() throws -> StoreDocument? {
@@ -582,7 +815,8 @@ private final class InMemoryStore: BookmarkStoreClient {
                     updatedAt: now,
                     clients: clients
                 ),
-                items: adoptIncomingItemsOnFirstConflict ? items : (document?.items ?? [])
+                items: conflictReplacementItems
+                    ?? (adoptIncomingItemsOnFirstConflict ? items : (document?.items ?? []))
             )
             throw BookmarkStoreError.revisionConflict(expected: currentRevision, actual: currentRevision + 1)
         }

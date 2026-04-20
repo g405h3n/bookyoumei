@@ -1,5 +1,6 @@
 @testable import CLIApp
 import Foundation
+import SyncEngine
 import Testing
 
 @Suite("CLICommandRouter")
@@ -105,6 +106,29 @@ struct CLICommandRouterTests {
         #expect(exitCode == 1)
         #expect(harness.resetServiceBuilder.builtService.resetCallCount == 0)
         #expect(harness.testIO.stderr.contains { $0.contains("missing required path: client_id") })
+    }
+
+    @Test func syncFailsWhenSafeSyncLimitIsNegative() {
+        let harness = RouterHarness()
+        harness.configLoader.config = RuntimeConfig.fixture(safeSyncLimit: -1)
+
+        let exitCode = harness.router.execute(arguments: ["sync"], io: harness.testIO)
+
+        #expect(exitCode == 2)
+        #expect(harness.syncService.runSyncCallCount == 0)
+        #expect(harness.testIO.stderr.contains { $0.contains("safe_sync_limit must be >= 0") })
+    }
+
+    @Test func syncReportsSafeSyncLimitExceededWithLimitAndActual() {
+        let harness = RouterHarness()
+        harness.syncService.runSyncError = SyncCoordinatorError.safeSyncLimitExceeded(limit: 100, actual: 101)
+
+        let exitCode = harness.router.execute(arguments: ["sync"], io: harness.testIO)
+
+        #expect(exitCode == 1)
+        #expect(harness.testIO.stderr.contains { $0.contains("safe sync limit exceeded") })
+        #expect(harness.testIO.stderr.contains { $0.contains("limit=100") })
+        #expect(harness.testIO.stderr.contains { $0.contains("actual=101") })
     }
 }
 

@@ -250,6 +250,7 @@ extension RuntimeConfig {
         snapshotsDirectoryURL: URL = URL(fileURLWithPath: "/tmp/snapshots"),
         stateDirectoryURL: URL = URL(fileURLWithPath: "/tmp/bookmarknot-state"),
         sortAfterImport: Bool = false,
+        safeSyncLimit: Int = 100,
         logFileURL: URL = URL(fileURLWithPath: "/tmp/bookmarknot-state/events.log")
     ) -> RuntimeConfig {
         RuntimeConfig(
@@ -264,6 +265,7 @@ extension RuntimeConfig {
             snapshotsDirectoryURL: snapshotsDirectoryURL,
             stateDirectoryURL: stateDirectoryURL,
             sortAfterImport: sortAfterImport,
+            safeSyncLimit: safeSyncLimit,
             logFileURL: logFileURL
         )
     }
