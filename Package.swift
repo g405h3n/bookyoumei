@@ -15,6 +15,10 @@ let package = Package(
             dependencies: ["BookmarkModel", "ChromeConnector", "SafariConnector", "Store", "MergeEngine"]
         ),
         .target(name: "WatcherEngine", dependencies: ["SyncEngine"]),
+        .executableTarget(
+            name: "CLIApp",
+            dependencies: ["SyncEngine", "WatcherEngine", "Store"]
+        ),
         .testTarget(name: "BookmarkModelTests", dependencies: ["BookmarkModel"]),
         .testTarget(name: "ChromeConnectorTests", dependencies: ["ChromeConnector"],
                     resources: [.copy("Fixtures")]),
@@ -24,5 +28,6 @@ let package = Package(
         .testTarget(name: "MergeEngineTests", dependencies: ["MergeEngine"]),
         .testTarget(name: "SyncEngineTests", dependencies: ["SyncEngine"]),
         .testTarget(name: "WatcherEngineTests", dependencies: ["WatcherEngine"]),
+        .testTarget(name: "CLIAppTests", dependencies: ["CLIApp"]),
     ]
 )
